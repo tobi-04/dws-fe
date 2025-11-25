@@ -3,6 +3,11 @@
     <div class="mb-6 flex justify-between items-center">
       <h2 class="text-3xl font-bold text-foreground">Quản lý người dùng</h2>
       <div class="flex gap-2">
+        <TobiSelect
+          v-model="statusFilter"
+          :items="statusOptions"
+          placeholder="Trạng thái"
+          class="w-40" />
         <TobiInput
           v-model="searchQuery"
           placeholder="Tìm kiếm người dùng..."
@@ -14,7 +19,7 @@
     <TobiCard>
       <div v-if="userStore.loading" class="py-12 text-center">
         <div
-          class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
 
       <div v-else>
@@ -127,10 +132,10 @@
     <!-- Lock User Confirmation Dialog -->
     <TobiModal
       :open="showLockDialog"
-      @update:open="(v) => (showLockDialog = v)"
       :title="
         lockAction === 'lock' ? 'Xác nhận khóa người dùng' : 'Xác nhận mở khóa'
-      ">
+      "
+      @update:open="(v) => (showLockDialog = v)">
       <template #body>
         <div class="space-y-4">
           <p class="text-sm text-muted">
@@ -172,18 +177,44 @@ const showLockDialog = ref(false);
 const lockAction = ref<"lock" | "unlock">("lock");
 const userIdToLock = ref<string | null>(null);
 const searchQuery = ref("");
+const statusFilter = ref<"NORMAL" | "BANNED" | "ALL">("ALL");
+
+const statusOptions = [
+  { label: "Tất cả", value: "ALL" },
+  { label: "Bình thường", value: "NORMAL" },
+  { label: "Đã khóa", value: "BANNED" },
+];
 
 onMounted(async () => {
   await userStore.fetchUsers();
 });
 
 const changePage = async (page: number) => {
-  await userStore.fetchUsers(page, 30, searchQuery.value);
+  await userStore.fetchUsers(
+    page,
+    30,
+    searchQuery.value,
+    statusFilter.value === "ALL" ? undefined : statusFilter.value
+  );
 };
 
 const handleSearch = useDebounceFn(async () => {
-  await userStore.fetchUsers(1, 30, searchQuery.value);
+  await userStore.fetchUsers(
+    1,
+    30,
+    searchQuery.value,
+    statusFilter.value === "ALL" ? undefined : statusFilter.value
+  );
 }, 300);
+
+watch(statusFilter, async () => {
+  await userStore.fetchUsers(
+    1,
+    30,
+    searchQuery.value,
+    statusFilter.value === "ALL" ? undefined : statusFilter.value
+  );
+});
 
 const handleLock = (id: string) => {
   userIdToLock.value = id;

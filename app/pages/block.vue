@@ -36,29 +36,14 @@
         <ul class="text-gray-400 space-y-2 text-sm">
           <li class="flex items-start gap-2">
             <span class="text-green-400 mt-1">✓</span>
-            <span>Đóng hoàn toàn cửa sổ Developer Tools</span>
+            <span>Đóng hoàn toàn cửa sổ này</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-green-400 mt-1">✓</span>
-            <span>Nhấn F12 một lần nữa để đóng (nếu đang mở)</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <span class="text-green-400 mt-1">✓</span>
-            <span>Sau đó nhấn nút bên dưới để quay lại</span>
+            <span>Mở một tab mới mà kiểm tra lại</span>
           </li>
         </ul>
       </div>
-
-      <!-- Nút quay lại -->
-      <TobiButton
-        color="primary"
-        size="xl"
-        class="px-8 py-3"
-        :loading="isChecking"
-        @click="goBack">
-        <TobiIcon name="i-lucide-arrow-left" class="w-5 h-5 mr-2" />
-        Quay lại trang chủ
-      </TobiButton>
 
       <!-- Cảnh báo nhỏ -->
       <p class="text-gray-600 text-xs mt-8">

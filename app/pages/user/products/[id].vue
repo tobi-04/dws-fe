@@ -178,6 +178,7 @@
             :key="review.id"
             :review="review"
             :can-delete="review.userId === authStore.user?.id"
+            :current-user-id="authStore.user?.id"
             @delete="handleDeleteReview"
             @like="handleLikeReview"
             @reply="handleReplyReview" />
@@ -567,21 +568,18 @@ const submitReview = async () => {
   submittingReview.value = true;
 
   try {
-    const newReview = await $fetch<Review>(
-      `${useRuntimeConfig().public.apiBaseUrl}/reviews`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: {
-          productId,
-          content: reviewContent.value,
-        },
-      }
-    );
-    reviews.value.unshift(newReview);
+    await $fetch<Review>(`${useRuntimeConfig().public.apiBaseUrl}/reviews`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+      body: {
+        productId,
+        content: reviewContent.value,
+      },
+    });
+    // Don't add locally - socket will handle it
     reviewContent.value = "";
     toast.add({
       title: "Thành công",
@@ -612,7 +610,8 @@ const handleDeleteReview = async (reviewId: string) => {
         },
       }
     );
-    reviews.value = reviews.value.filter((r) => r.id !== reviewId);
+    // Use deleteReviewFromTree to handle both parent reviews and replies
+    reviews.value = deleteReviewFromTree(reviews.value, reviewId);
     toast.add({
       title: "Thành công",
       description: "Đánh giá đã được xóa",
@@ -660,32 +659,19 @@ const handleLikeReview = async (reviewId: string, isLike: boolean) => {
 const handleReplyReview = async (parentId: string, content: string) => {
   const productId = route.params.id as string;
   try {
-    const newReply = await $fetch<Review>(
-      `${useRuntimeConfig().public.apiBaseUrl}/reviews`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: {
-          productId,
-          content,
-          parentId,
-        },
-      }
-    );
-    // Add reply to the parent review
-    const parentIndex = reviews.value.findIndex((r) => r.id === parentId);
-    if (parentIndex !== -1) {
-      const parentReview = reviews.value[parentIndex];
-      if (parentReview) {
-        if (!parentReview.replies) {
-          parentReview.replies = [];
-        }
-        parentReview.replies.push(newReply);
-      }
-    }
+    await $fetch<Review>(`${useRuntimeConfig().public.apiBaseUrl}/reviews`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+      body: {
+        productId,
+        content,
+        parentId,
+      },
+    });
+    // Don't add locally - socket will handle it
     toast.add({
       title: "Thành công",
       description: "Đã gửi phản hồi",

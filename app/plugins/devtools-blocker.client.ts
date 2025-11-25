@@ -5,8 +5,24 @@ export default defineNuxtPlugin(() => {
   const route = useRoute();
 
   let devToolsOpen = false;
+  let hasLoggedThisSession = false;
   const BLOCKED_IMAGE_URL =
     "https://cdn-icons-png.flaticon.com/512/7596/7596460.png";
+
+  // Log DevTools detection to server (only for keyboard shortcuts)
+  const logDevToolsDetection = async () => {
+    if (hasLoggedThisSession) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      hasLoggedThisSession = true;
+      await api.logDevTools(route.path, navigator.userAgent);
+    } catch {
+      // Ignore errors - user might not be logged in
+    }
+  };
 
   const replaceAllImages = () => {
     const images = document.querySelectorAll("img");
@@ -56,12 +72,15 @@ export default defineNuxtPlugin(() => {
 
   let imageObserver: MutationObserver | null = null;
 
-  const redirectToBlock = () => {
+  const redirectToBlock = (shouldLog: boolean = false) => {
     if (route.path !== "/block") {
       devToolsOpen = true;
       replaceAllImages();
       if (!imageObserver) {
         imageObserver = observeNewImages();
+      }
+      if (shouldLog) {
+        logDevToolsDetection();
       }
       router.push("/block");
     }
@@ -78,14 +97,14 @@ export default defineNuxtPlugin(() => {
     ) {
       e.preventDefault();
       e.stopPropagation();
-      redirectToBlock();
+      redirectToBlock(true); // Log keyboard shortcut detection
       return false;
     }
   };
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
-    redirectToBlock();
+    // Don't log right-click as per requirement
     return false;
   };
 
@@ -110,8 +129,8 @@ export default defineNuxtPlugin(() => {
           router.push("/block");
         }
       }
-    } catch {
-      // Ignore errors
+    } catch (error) {
+      console.log("Error checking devtools", error);
     }
   };
 

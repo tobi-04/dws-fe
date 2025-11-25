@@ -23,7 +23,7 @@
       </div>
       <TobiSelect
         v-model="selectedStatus"
-        :options="statusOptions"
+        :items="statusOptions"
         placeholder="Lọc theo trạng thái"
         class="w-full sm:w-48" />
     </div>
@@ -85,7 +85,7 @@ const selectedStatus = ref((route.query.status as string) || "");
 const currentPage = ref(Number(route.query.page) || 1);
 
 const statusOptions = [
-  { label: "Tất cả", value: "" },
+  { label: "Tất cả", value: "ALL" },
   { label: "Công khai", value: "PUBLISHED" },
   { label: "Riêng tư", value: "PRIVATE" },
   { label: "Whitelist", value: "WHITELIST" },
@@ -105,7 +105,7 @@ watch(
     // Update URL
     const query: Record<string, string | number> = { page };
     if (search) query.search = search;
-    if (status) query.status = status;
+    if (status && status !== "ALL") query.status = status;
 
     router.replace({ query });
 
@@ -124,7 +124,7 @@ const fetchProducts = async () => {
     currentPage.value,
     12,
     debouncedSearch.value || undefined,
-    selectedStatus.value || undefined
+    selectedStatus.value === "ALL" ? undefined : selectedStatus.value
   );
 };
 
@@ -134,6 +134,10 @@ const goToDetail = (id: string) => {
 
 // Initial fetch
 onMounted(async () => {
-  await fetchProducts();
+  try {
+    await fetchProducts();
+  } catch (error) {
+    console.error("Error in products page onMounted:", error);
+  }
 });
 </script>

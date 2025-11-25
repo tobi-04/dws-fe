@@ -22,9 +22,10 @@ export const useUserStore = defineStore("user", {
       page: number = 1,
       limit: number = 30,
       search?: string,
+      status?: "NORMAL" | "BANNED",
       skipCache = false
     ) {
-      const cacheKey = `users:${page}:${limit}:${search || ""}`;
+      const cacheKey = `users:${page}:${limit}:${search || ""}:${status || ""}`;
 
       // Check cache
       if (!skipCache) {
@@ -38,7 +39,7 @@ export const useUserStore = defineStore("user", {
 
       this.loading = true;
       try {
-        const response = await api.getUsers(page, limit, search);
+        const response = await api.getUsers(page, limit, search, status);
         this.users = response.items;
         this.meta = response.meta;
 

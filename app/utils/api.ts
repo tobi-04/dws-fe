@@ -9,6 +9,9 @@ import type {
   CreateProductDto,
   UpdateProductDto,
   ImportJobStatus,
+  PaginatedNotifications,
+  Notification,
+  PaginatedDevToolsStats,
 } from "~/types";
 
 interface RequestOptions {
@@ -63,6 +66,21 @@ class ApiClient {
       const error = await response
         .json()
         .catch(() => ({ message: "Request failed" }));
+
+      // Check if account is banned/locked
+      const errorMessage = error.message || "";
+      if (
+        response.status === 403 &&
+        (errorMessage.toLowerCase().includes("locked") ||
+          errorMessage.toLowerCase().includes("banned"))
+      ) {
+        // Trigger banned state globally
+        if (import.meta.client) {
+          const { setBanned } = useBannedUser();
+          setBanned(true);
+        }
+      }
+
       throw new Error(error.message || `HTTP ${response.status}`);
     }
 
@@ -98,13 +116,15 @@ class ApiClient {
   async getUsers(
     page: number = 1,
     limit: number = 30,
-    search?: string
+    search?: string,
+    status?: "NORMAL" | "BANNED"
   ): Promise<PaginatedUsers> {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
     });
     if (search) params.append("search", search);
+    if (status) params.append("status", status);
     return this.request(`/users?${params.toString()}`);
   }
 
@@ -260,6 +280,62 @@ class ApiClient {
 
   async getImportStatus(jobId: string): Promise<ImportJobStatus> {
     return this.request(`/products/import-status/${jobId}`);
+  }
+
+  // ========== Notifications ==========
+  async getNotifications(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<PaginatedNotifications> {
+    return this.request(`/notifications?page=${page}&limit=${limit}`);
+  }
+
+  async getUnreadCount(): Promise<{ count: number }> {
+    return this.request("/notifications/unread-count");
+  }
+
+  async markNotificationAsRead(
+    notificationId?: string,
+    all?: boolean
+  ): Promise<void> {
+    return this.request("/notifications/mark-read", {
+      method: "POST",
+      body: { notificationId, all },
+    });
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    return this.request(`/notifications/${id}`, { method: "DELETE" });
+  }
+
+  async sendNotification(
+    userId: string,
+    title: string,
+    content: string
+  ): Promise<Notification> {
+    return this.request("/notifications/send", {
+      method: "POST",
+      body: { userId, title, content },
+    });
+  }
+
+  // ========== DevTools Logs ==========
+  async logDevTools(path: string, userAgent?: string): Promise<void> {
+    return this.request("/devtools/log", {
+      method: "POST",
+      body: { path, userAgent },
+    });
+  }
+
+  async getDevToolsTodayCount(): Promise<{ count: number }> {
+    return this.request("/devtools/today-count");
+  }
+
+  async getFrequentDevToolsUsers(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<PaginatedDevToolsStats> {
+    return this.request(`/devtools/frequent-users?page=${page}&limit=${limit}`);
   }
 }
 

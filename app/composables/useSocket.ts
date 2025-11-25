@@ -116,6 +116,20 @@ export const useSocket = () => {
     return () => state.socket?.off("productSavedUpdated", callback);
   };
 
+  const onAccountBanned = (callback: () => void) => {
+    if (!state.socket) return () => {};
+    state.socket.on("accountBanned", callback);
+    return () => state.socket?.off("accountBanned", callback);
+  };
+
+  const onNotificationDeleted = (
+    callback: (data: { notificationIds: string[] }) => void
+  ) => {
+    if (!state.socket) return () => {};
+    state.socket.on("notificationDeleted", callback);
+    return () => state.socket?.off("notificationDeleted", callback);
+  };
+
   return {
     socket: computed(() => state.socket),
     connected: computed(() => state.connected),
@@ -130,5 +144,7 @@ export const useSocket = () => {
     onReviewVisibilityChanged,
     onProductReactionUpdated,
     onProductSavedUpdated,
+    onAccountBanned,
+    onNotificationDeleted,
   };
 };

@@ -1,5 +1,27 @@
 <template>
   <div class="min-h-screen bg-background">
+    <!-- Banned User Modal - Cannot be dismissed -->
+    <div
+      v-if="isBanned"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-muted">
+      <div class="bg-background rounded-lg p-8 max-w-md mx-4 text-center">
+        <div
+          class="w-16 h-16 mx-auto mb-4 rounded-full bg-error/10 flex items-center justify-center">
+          <TobiIcon name="i-lucide-ban" class="w-8 h-8 text-error" />
+        </div>
+        <h2 class="text-xl font-bold text-foreground mb-2">
+          Tài khoản đã bị khóa
+        </h2>
+        <p class="text-muted mb-6">
+          Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ admin
+          để được hỗ trợ.
+        </p>
+        <TobiButton color="primary" @click="handleLogoutBanned">
+          Đăng xuất
+        </TobiButton>
+      </div>
+    </div>
+
     <!-- Header -->
     <header class="sticky top-0 z-40 bg-muted">
       <div
@@ -26,6 +48,7 @@
           </nav>
         </div>
         <div class="flex items-center gap-4">
+          <NotificationDropdown />
           <span class="text-sm text-muted">{{ authStore.user?.username }}</span>
           <TobiButton
             color="error"
@@ -54,9 +77,36 @@
 </template>
 
 <script setup lang="ts">
+import NotificationDropdown from "~/components/molecules/NotificationDropdown.vue";
+
 const authStore = useAuthStore();
+const { connect, disconnect, onAccountBanned } = useSocket();
+const { isBanned, setBanned } = useBannedUser();
+
+// Connect socket when layout mounts
+onMounted(() => {
+  if (authStore.token) {
+    connect();
+  }
+
+  // Listen for real-time ban event from socket
+  onAccountBanned(() => {
+    setBanned(true);
+  });
+});
+
+onUnmounted(() => {
+  disconnect();
+});
 
 const handleLogout = () => {
+  disconnect();
+  authStore.logout();
+};
+
+const handleLogoutBanned = () => {
+  setBanned(false);
+  disconnect();
   authStore.logout();
 };
 </script>

@@ -1,6 +1,22 @@
-import type { Role, UserStatus, ImportJobStatus } from "./api-types";
+import type {
+  Role,
+  UserStatus,
+  ImportJobStatus,
+  NotificationType,
+  Notification,
+  PaginatedNotifications,
+  DevToolsUserStats,
+  PaginatedDevToolsStats,
+} from "./api-types";
 
-export type { ImportJobStatus };
+export type {
+  ImportJobStatus,
+  NotificationType,
+  Notification,
+  PaginatedNotifications,
+  DevToolsUserStats,
+  PaginatedDevToolsStats,
+};
 
 export interface JwtUser {
   id: string;

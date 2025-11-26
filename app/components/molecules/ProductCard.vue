@@ -8,6 +8,7 @@
         :alt="product.name"
         class="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
         loading="lazy"
+        draggable="false"
         @click="$emit('view', product.id)" />
     </div>
 

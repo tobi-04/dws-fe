@@ -186,6 +186,7 @@
                       :src="product.imageUrl"
                       :alt="product.name"
                       class="w-12 h-12 rounded object-cover cursor-pointer"
+                      draggable="false"
                       @click="viewProduct(product.id)" />
                     <div class="w-12 h-12 bg-muted rounded" v-else></div>
                     <span class="font-medium text-foreground">{{

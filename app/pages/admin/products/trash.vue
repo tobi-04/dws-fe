@@ -13,7 +13,7 @@
           :items="statusOptions"
           placeholder="Trạng thái"
           class="w-40"
-          @update:modelValue="handleFilter" />
+          @update:model-value="handleFilter" />
         <TobiButton
           v-if="selectedIds.length > 0"
           color="error"
@@ -36,7 +36,7 @@
         <table class="w-full">
           <thead class="bg-muted border-b">
             <tr>
-              <th class="px-6 py-3 w-12"></th>
+              <th class="px-6 py-3 w-12" />
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Sản phẩm
@@ -54,21 +54,21 @@
           <tbody class="divide-y divide-secondary">
             <tr v-for="i in 12" :key="i" class="border-b">
               <td class="px-6 py-4">
-                <div class="w-4 h-4 bg-muted rounded animate-pulse"></div>
+                <div class="w-4 h-4 bg-muted rounded animate-pulse" />
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 bg-muted rounded animate-pulse"></div>
-                  <div class="h-4 w-32 bg-muted rounded animate-pulse"></div>
+                  <div class="w-12 h-12 bg-muted rounded animate-pulse" />
+                  <div class="h-4 w-32 bg-muted rounded animate-pulse" />
                 </div>
               </td>
               <td class="px-6 py-4">
-                <div class="h-4 w-24 bg-muted rounded animate-pulse"></div>
+                <div class="h-4 w-24 bg-muted rounded animate-pulse" />
               </td>
               <td class="px-6 py-4 text-right">
                 <div class="flex justify-end gap-2">
-                  <div class="h-8 w-24 bg-muted rounded animate-pulse"></div>
-                  <div class="h-8 w-24 bg-muted rounded animate-pulse"></div>
+                  <div class="h-8 w-24 bg-muted rounded animate-pulse" />
+                  <div class="h-8 w-24 bg-muted rounded animate-pulse" />
                 </div>
               </td>
             </tr>
@@ -359,6 +359,36 @@ const handleHardDelete = async (id: string) => {
       } catch (error) {
         toast.add({
           title: "Xóa vĩnh viễn thất bại",
+          description:
+            error instanceof Error ? error.message : "Vui lòng thử lại",
+          color: "error",
+          icon: "i-lucide-alert-circle",
+        });
+      }
+    },
+  });
+};
+
+const handleDeleteAll = () => {
+  openConfirm({
+    title: "Xóa toàn bộ sản phẩm",
+    description:
+      "Bạn có chắc muốn xóa TOÀN BỘ sản phẩm trong hệ thống? Hành động này không thể hoàn tác!",
+    color: "error",
+    confirmLabel: "Xóa toàn bộ",
+    onConfirm: async () => {
+      try {
+        const result = await productStore.hardDeleteAllProducts();
+        selectedIds.value = [];
+        toast.add({
+          title: "Xóa toàn bộ thành công",
+          description: `Đã xóa ${result.count} sản phẩm khỏi hệ thống`,
+          color: "success",
+          icon: "i-lucide-check-circle",
+        });
+      } catch (error) {
+        toast.add({
+          title: "Xóa toàn bộ thất bại",
           description:
             error instanceof Error ? error.message : "Vui lòng thử lại",
           color: "error",

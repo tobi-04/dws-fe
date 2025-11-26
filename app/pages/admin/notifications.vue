@@ -182,6 +182,7 @@ import StarterKit from "@tiptap/starter-kit";
 import type { User } from "~/types";
 
 definePageMeta({
+  middleware: "admin",
   layout: "admin",
 });
 

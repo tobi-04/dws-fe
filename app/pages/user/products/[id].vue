@@ -33,18 +33,17 @@
               class="aspect-square bg-muted rounded-lg overflow-hidden cursor-zoom-in relative"
               @click="showImageZoom = true"
               @contextmenu.prevent>
-              <img
+              <CanvasImage
                 v-if="product.imageUrl"
                 :src="product.imageUrl"
                 :alt="product.name"
-                class="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
-                draggable="false"
-                @error="handleImageError" />
+                container-class="w-full h-full"
+                canvas-class="hover:scale-105 transition-transform duration-300" />
               <div
-                class="absolute inset-0 flex items-center justify-center bg-secondary/0 hover:bg-secondary/20 transition-colors">
+                class="absolute inset-0 flex items-center justify-center bg-secondary/0 hover:bg-secondary/20 transition-colors pointer-events-none">
                 <TobiIcon
                   name="i-lucide-zoom-in"
-                  class="w-8 h-8 text-muted opacity-0 hover:opacity-100 transition-opacity" />
+                  class="w-8 h-8 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
           </div>
@@ -225,6 +224,7 @@
 import ImageZoomer from "~/components/organisms/ImageZoomer.vue";
 import ReviewEditor from "~/components/organisms/ReviewEditor.vue";
 import ReviewCard from "~/components/molecules/ReviewCard.vue";
+import CanvasImage from "~/components/molecules/CanvasImage.vue";
 import type { Review, PaginationMeta } from "~/types";
 
 definePageMeta({

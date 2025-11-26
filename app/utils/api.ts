@@ -261,6 +261,12 @@ class ApiClient {
     });
   }
 
+  async hardDeleteAllProducts(): Promise<{ message: string; count: number }> {
+    return this.request("/products/hard-delete-all", {
+      method: "DELETE",
+    });
+  }
+
   async restoreProducts(ids: string[]): Promise<void> {
     return this.request("/products/restore", {
       method: "POST",

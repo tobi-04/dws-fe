@@ -35,13 +35,10 @@
               transformOrigin: 'center center',
               transition: isDragging ? 'none' : 'transform 0.2s ease-out',
             }">
-            <img
-              ref="imageRef"
-              :src="imageSrc"
-              :alt="alt"
+            <canvas
+              ref="canvasRef"
               class="max-w-full max-h-full object-contain pointer-events-none select-none"
-              draggable="false"
-              @load="centerImage" />
+              draggable="false" />
           </div>
 
           <!-- Watermark Layer - 4 diagonal rows -->
@@ -129,7 +126,8 @@ const modelValue = computed({
 });
 
 const containerRef = ref<HTMLDivElement>();
-const imageRef = ref<HTMLImageElement>();
+const canvasRef = ref<HTMLCanvasElement>();
+const imageLoaded = ref(false);
 
 // Zoom and pan state
 const scale = ref(1);
@@ -148,6 +146,39 @@ const scaleInput = computed({
 const handleSliderChange = (e: Event) => {
   const target = e.target as HTMLInputElement;
   scale.value = Number(target.value) / 100;
+};
+
+// Draw image on canvas
+const drawImageOnCanvas = async () => {
+  if (!props.imageSrc || !canvasRef.value) return;
+
+  try {
+    const img = new Image();
+    // For base64 images, no need for crossOrigin
+    if (!props.imageSrc.startsWith("data:")) {
+      img.crossOrigin = "anonymous";
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = props.imageSrc;
+    });
+
+    const canvas = canvasRef.value;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Set canvas size to image size
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    // Draw image
+    ctx.drawImage(img, 0, 0);
+    imageLoaded.value = true;
+  } catch (e) {
+    console.error("Failed to draw image on canvas:", e);
+  }
 };
 
 const centerImage = () => {
@@ -268,12 +299,25 @@ onMounted(() => {
   });
 });
 
-// Reset when modal opens
+// Reset when modal opens and draw image
 watch(
   () => props.modelValue,
-  (val) => {
+  async (val) => {
     if (val) {
       reset();
+      await nextTick();
+      await drawImageOnCanvas();
+    }
+  }
+);
+
+// Also watch for imageSrc changes
+watch(
+  () => props.imageSrc,
+  async () => {
+    if (props.modelValue) {
+      await nextTick();
+      await drawImageOnCanvas();
     }
   }
 );

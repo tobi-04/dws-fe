@@ -1,15 +1,16 @@
 <template>
   <div
     class="rounded-lg border border-muted shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-    <div class="aspect-square overflow-hidden bg-muted">
-      <img
+    <div
+      class="aspect-square overflow-hidden bg-muted cursor-pointer"
+      @contextmenu.prevent
+      @click="$emit('view', product.id)">
+      <CanvasImage
         v-if="product.imageUrl"
         :src="product.imageUrl"
         :alt="product.name"
-        class="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
-        loading="lazy"
-        draggable="false"
-        @click="$emit('view', product.id)" />
+        container-class="w-full h-full"
+        canvas-class="hover:scale-105 transition-transform duration-300" />
     </div>
 
     <div class="p-4">
@@ -58,6 +59,7 @@
 <script setup lang="ts">
 import type { Product } from "~/types";
 import ProductFormModal from "../organisms/ProductFormModal.vue";
+import CanvasImage from "./CanvasImage.vue";
 import { ref, computed } from "vue"; // Import ref and computed
 
 interface Props {

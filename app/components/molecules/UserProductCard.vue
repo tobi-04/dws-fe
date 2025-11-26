@@ -6,13 +6,12 @@
     <div
       class="aspect-square overflow-hidden bg-muted relative"
       @contextmenu.prevent>
-      <img
+      <CanvasImage
         v-if="product.imageUrl"
         :src="product.imageUrl"
         :alt="product.name"
-        class="w-full h-full object-cover hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
-        loading="lazy"
-        draggable="false" />
+        container-class="w-full h-full"
+        canvas-class="hover:scale-105 transition-transform duration-300" />
       <!-- Status badge overlay -->
       <div class="absolute top-2 right-2">
         <TobiBadge :color="statusColor" size="sm">
@@ -34,6 +33,7 @@
 
 <script setup lang="ts">
 import type { Product } from "~/types";
+import CanvasImage from "./CanvasImage.vue";
 
 interface Props {
   product: Product;

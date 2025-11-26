@@ -14,7 +14,7 @@
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <div class="bg-background rounded-lg p-4 border border-muted">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-lg bg-yellow-100">
@@ -35,20 +35,8 @@
             <TobiIcon name="i-lucide-user-x" class="w-6 h-6 text-orange-600" />
           </div>
           <div>
-            <p class="text-sm text-muted">Đang cảnh báo (10-14)</p>
+            <p class="text-sm text-muted">Đang cảnh báo (≥10)</p>
             <p class="text-2xl font-bold">{{ warningCount }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-background rounded-lg p-4 border border-muted">
-        <div class="flex items-center gap-3">
-          <div class="p-2 rounded-lg bg-red-100">
-            <TobiIcon name="i-lucide-lock" class="w-6 h-6 text-red-600" />
-          </div>
-          <div>
-            <p class="text-sm text-muted">Bị khóa (≥15)</p>
-            <p class="text-2xl font-bold">{{ lockedCount }}</p>
           </div>
         </div>
       </div>
@@ -105,21 +93,29 @@
             </td>
             <td class="px-4 py-3 text-center">
               <span
-                class="px-2 py-1 rounded text-xs font-medium"
-                :class="getStatusClass(item.count)">
-                {{ getStatusText(item.count) }}
+                class="px-2 py-1 rounded text-xs font-medium bg-yellow-500 text-white">
+                Cảnh báo
               </span>
             </td>
             <td class="px-4 py-3 text-sm text-muted">
               {{ formatTime(item.lastDetected) }}
             </td>
             <td class="px-4 py-3 text-right">
-              <TobiButton
-                variant="ghost"
-                size="xs"
-                @click="sendWarningNotification(item)">
-                <TobiIcon name="i-lucide-send" class="w-4 h-4" />
-              </TobiButton>
+              <div class="flex justify-end gap-2">
+                <TobiButton
+                  variant="ghost"
+                  size="xs"
+                  @click="sendWarningNotification(item)">
+                  <TobiIcon name="i-lucide-send" class="w-4 h-4" />
+                </TobiButton>
+                <TobiButton
+                  variant="ghost"
+                  size="xs"
+                  color="error"
+                  @click="handleLockUser(item)">
+                  <TobiIcon name="i-lucide-lock" class="w-4 h-4" />
+                </TobiButton>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -157,6 +153,7 @@
 import type { PaginatedDevToolsStats, DevToolsUserStats } from "~/types";
 
 definePageMeta({
+  middleware: "admin",
   layout: "admin",
 });
 
@@ -194,32 +191,12 @@ onMounted(() => {
 });
 
 const warningCount = computed(() => {
-  return (
-    stats.value?.data?.filter((item) => item.count >= 10 && item.count < 15)
-      .length || 0
-  );
-});
-
-const lockedCount = computed(() => {
-  return stats.value?.data?.filter((item) => item.count >= 15).length || 0;
+  return stats.value?.data?.filter((item) => item.count >= 10).length || 0;
 });
 
 const getCountClass = (count: number): string => {
-  if (count >= 15) return "bg-red-100 text-red-700";
   if (count >= 10) return "bg-yellow-100 text-yellow-700";
   return "bg-gray-100 text-gray-700";
-};
-
-const getStatusClass = (count: number): string => {
-  if (count >= 15) return "bg-red-500 text-white";
-  if (count >= 10) return "bg-yellow-500 text-white";
-  return "bg-gray-500 text-white";
-};
-
-const getStatusText = (count: number): string => {
-  if (count >= 15) return "Đã khóa";
-  if (count >= 10) return "Cảnh báo";
-  return "Bình thường";
 };
 
 const formatTime = (dateString: string): string => {
@@ -243,6 +220,27 @@ const sendWarningNotification = async (item: DevToolsUserStats) => {
     toast.add({
       title: "Lỗi",
       description: "Không thể gửi thông báo",
+      color: "error",
+    });
+  }
+};
+
+const handleLockUser = async (item: DevToolsUserStats) => {
+  if (!confirm(`Bạn có chắc muốn khóa tài khoản ${item.username}?`)) return;
+
+  try {
+    await api.lockUser(item.userId);
+    toast.add({
+      title: "Thành công",
+      description: `Đã khóa tài khoản ${item.username}`,
+      color: "success",
+    });
+    // Refresh data
+    loadStats();
+  } catch {
+    toast.add({
+      title: "Lỗi",
+      description: "Không thể khóa tài khoản",
       color: "error",
     });
   }

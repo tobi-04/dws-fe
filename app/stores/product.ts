@@ -143,7 +143,7 @@ export const useProductStore = defineStore("product", {
         this.meta.total -= 1;
       }
 
-      // Clear cache
+      // Clear cache - let component handle reload
       this.clearCache();
     },
 
@@ -156,12 +156,7 @@ export const useProductStore = defineStore("product", {
         this.products.splice(index, 1);
       }
 
-      // Cập nhật meta total
-      if (this.meta) {
-        this.meta.total -= 1;
-      }
-
-      // Clear cache
+      // Clear cache - let component handle reload
       this.clearCache();
     },
 
@@ -171,11 +166,7 @@ export const useProductStore = defineStore("product", {
       // Remove products from list
       this.products = this.products.filter((p) => !ids.includes(p.id));
 
-      // Update meta total
-      if (this.meta) {
-        this.meta.total -= ids.length;
-      }
-
+      // Clear cache - let component handle reload
       this.clearCache();
     },
 
@@ -185,12 +176,21 @@ export const useProductStore = defineStore("product", {
       // Remove products from list
       this.products = this.products.filter((p) => !ids.includes(p.id));
 
-      // Update meta total
-      if (this.meta) {
-        this.meta.total -= ids.length;
-      }
-
+      // Clear cache - let component handle reload
       this.clearCache();
+    },
+
+    async hardDeleteAllProducts() {
+      const result = await api.hardDeleteAllProducts();
+
+      // Clear all products
+      this.products = [];
+      this.meta = null;
+
+      // Clear cache
+      this.clearCache();
+
+      return result;
     },
 
     async fetchTrashedProducts(
@@ -221,12 +221,17 @@ export const useProductStore = defineStore("product", {
       // Remove restored products from the list (since we are in trash view)
       this.products = this.products.filter((p) => !ids.includes(p.id));
 
-      // Update meta total
-      if (this.meta) {
-        this.meta.total -= ids.length;
-      }
-
+      // Clear cache first
       this.clearCache();
+
+      // Re-fetch to get accurate pagination
+      if (this.meta) {
+        const newPage =
+          this.products.length === 0 && this.meta.page > 1
+            ? this.meta.page - 1
+            : this.meta.page;
+        await this.fetchTrashedProducts(newPage, this.meta.limit);
+      }
     },
 
     clearCache() {

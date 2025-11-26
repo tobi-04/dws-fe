@@ -98,6 +98,12 @@
       </div>
     </div>
 
+    <!-- Confirm Dialog for Bulk Delete -->
+    <TobiConfirmDialog
+      v-bind="confirmConfig"
+      :open="confirmIsOpen"
+      @close="closeConfirm" />
+
     <!-- Grid View -->
     <div v-if="viewMode === 'grid'">
       <div
@@ -181,14 +187,16 @@
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
-                    <img
+                    <div
                       v-if="product.imageUrl"
-                      :src="product.imageUrl"
-                      :alt="product.name"
-                      class="w-12 h-12 rounded object-cover cursor-pointer"
-                      draggable="false"
-                      @click="viewProduct(product.id)" />
-                    <div class="w-12 h-12 bg-muted rounded" v-else></div>
+                      class="w-12 h-12 rounded overflow-hidden cursor-pointer"
+                      @click="viewProduct(product.id)">
+                      <CanvasImage
+                        :src="product.imageUrl"
+                        :alt="product.name"
+                        container-class="w-full h-full" />
+                    </div>
+                    <div v-else class="w-12 h-12 bg-muted rounded"></div>
                     <span class="font-medium text-foreground">{{
                       product.name
                     }}</span>
@@ -268,8 +276,8 @@
     <!-- Delete Confirmation Dialog -->
     <TobiModal
       :open="showDeleteDialog"
-      @update:open="(v) => (showDeleteDialog = v)"
-      title="Xác nhận xóa sản phẩm">
+      title="Xác nhận xóa sản phẩm"
+      @update:open="(v) => (showDeleteDialog = v)">
       <template #body>
         <div class="space-y-4">
           <p class="text-sm text-muted">
@@ -313,6 +321,8 @@ import ProductCardSkeleton from "~/components/molecules/ProductCardSkeleton.vue"
 import ProductTableRowSkeleton from "~/components/molecules/ProductTableRowSkeleton.vue";
 import ProductFormModal from "~/components/organisms/ProductFormModal.vue";
 import ImportProductsModal from "~/components/organisms/ImportProductsModal.vue";
+import CanvasImage from "~/components/molecules/CanvasImage.vue";
+import TobiConfirmDialog from "~/components/core/TobiConfirmDialog.vue";
 
 definePageMeta({
   middleware: "admin",
@@ -321,8 +331,15 @@ definePageMeta({
 
 const productStore = useProductStore();
 const router = useRouter();
+const route = useRoute();
 
 const toast = useToast();
+const {
+  isOpen: confirmIsOpen,
+  config: confirmConfig,
+  open: openConfirm,
+  close: closeConfirm,
+} = useConfirmDialog();
 
 const viewMode = ref<"grid" | "table">("grid");
 const showModal = ref(false);
@@ -394,13 +411,89 @@ const toggleSelectAll = () => {
 };
 
 const handleBulkSoftDelete = () => {
-  productToDelete.value = "BULK"; // Special flag for bulk
-  showDeleteDialog.value = true;
+  if (selectedIds.value.length === 0) return;
+
+  openConfirm({
+    title: "Xác nhận xóa mềm",
+    description: `Bạn có chắc muốn chuyển <strong>${selectedIds.value.length}</strong> sản phẩm vào thùng rác?`,
+    confirmLabel: "Xóa mềm",
+    cancelLabel: "Hủy",
+    color: "warning",
+    onConfirm: async () => {
+      try {
+        await productStore.bulkSoftDeleteProducts(selectedIds.value);
+        toast.add({
+          title: "Xóa thành công",
+          description: `Đã chuyển ${selectedIds.value.length} sản phẩm vào thùng rác`,
+          color: "success",
+          icon: "i-lucide-check-circle",
+        });
+        selectedIds.value = [];
+        // Reset page and reload
+        await reloadAfterDelete();
+      } catch (error) {
+        console.error("Xóa sản phẩm thất bại:", error);
+        toast.add({
+          title: "Xóa sản phẩm thất bại",
+          description:
+            error instanceof Error ? error.message : "Vui lòng thử lại",
+          color: "error",
+          icon: "i-lucide-alert-circle",
+        });
+      }
+    },
+  });
 };
 
 const handleBulkHardDelete = () => {
-  productToDelete.value = "BULK_HARD"; // Special flag for bulk hard
-  showDeleteDialog.value = true;
+  if (selectedIds.value.length === 0) return;
+
+  openConfirm({
+    title: "Xác nhận xóa vĩnh viễn",
+    description: `Bạn có chắc muốn xóa vĩnh viễn <strong>${selectedIds.value.length}</strong> sản phẩm? Hành động này không thể hoàn tác.`,
+    confirmLabel: "Xóa vĩnh viễn",
+    cancelLabel: "Hủy",
+    color: "error",
+    onConfirm: async () => {
+      try {
+        await productStore.bulkHardDeleteProducts(selectedIds.value);
+        toast.add({
+          title: "Xóa vĩnh viễn thành công",
+          description: `Đã xóa ${selectedIds.value.length} sản phẩm`,
+          color: "success",
+          icon: "i-lucide-check-circle",
+        });
+        selectedIds.value = [];
+        // Reset page and reload
+        await reloadAfterDelete();
+      } catch (error) {
+        console.error("Xóa sản phẩm thất bại:", error);
+        toast.add({
+          title: "Xóa sản phẩm thất bại",
+          description:
+            error instanceof Error ? error.message : "Vui lòng thử lại",
+          color: "error",
+          icon: "i-lucide-alert-circle",
+        });
+      }
+    },
+  });
+};
+
+const reloadAfterDelete = async () => {
+  // Remove page from query URL
+  const query = { ...route.query };
+  delete query.page;
+  await router.replace({ query });
+
+  // Reload products from page 1
+  await productStore.fetchProducts(
+    1,
+    12,
+    searchQuery.value,
+    statusFilter.value === "ALL" ? "" : statusFilter.value,
+    true
+  );
 };
 
 const openCreateModal = () => {
@@ -430,48 +523,25 @@ const confirmDelete = async (type: "soft" | "hard") => {
   showDeleteDialog.value = false;
 
   try {
-    if (
-      productToDelete.value === "BULK" ||
-      productToDelete.value === "BULK_HARD"
-    ) {
-      const isHard = productToDelete.value === "BULK_HARD" || type === "hard";
-      if (isHard) {
-        await productStore.bulkHardDeleteProducts(selectedIds.value);
-        toast.add({
-          title: "Xóa vĩnh viễn thành công",
-          description: `Đã xóa ${selectedIds.value.length} sản phẩm`,
-          color: "success",
-          icon: "i-lucide-check-circle",
-        });
-      } else {
-        await productStore.bulkSoftDeleteProducts(selectedIds.value);
-        toast.add({
-          title: "Xóa thành công",
-          description: `Đã chuyển ${selectedIds.value.length} sản phẩm vào thùng rác`,
-          color: "success",
-          icon: "i-lucide-check-circle",
-        });
-      }
-      selectedIds.value = [];
+    if (type === "soft") {
+      await productStore.deleteProduct(productToDelete.value);
+      toast.add({
+        title: "Xóa thành công",
+        description: "Sản phẩm đã được chuyển vào thùng rác",
+        color: "success",
+        icon: "i-lucide-check-circle",
+      });
     } else {
-      if (type === "soft") {
-        await productStore.deleteProduct(productToDelete.value);
-        toast.add({
-          title: "Xóa thành công",
-          description: "Sản phẩm đã được chuyển vào thùng rác",
-          color: "success",
-          icon: "i-lucide-check-circle",
-        });
-      } else {
-        await productStore.hardDeleteProduct(productToDelete.value);
-        toast.add({
-          title: "Xóa vĩnh viễn thành công",
-          description: "Sản phẩm đã được xóa khỏi hệ thống",
-          color: "success",
-          icon: "i-lucide-check-circle",
-        });
-      }
+      await productStore.hardDeleteProduct(productToDelete.value);
+      toast.add({
+        title: "Xóa vĩnh viễn thành công",
+        description: "Sản phẩm đã được xóa khỏi hệ thống",
+        color: "success",
+        icon: "i-lucide-check-circle",
+      });
     }
+    // Reload after single delete
+    await reloadAfterDelete();
   } catch (error) {
     console.error("Xóa sản phẩm thất bại:", error);
     toast.add({

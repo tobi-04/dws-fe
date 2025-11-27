@@ -1,6 +1,5 @@
 export default defineNuxtPlugin(() => {
-  //   if (import.meta.env.DEV) return;
-  return;
+  if (import.meta.env.DEV) return;
 
   const router = useRouter();
   const route = useRoute();
